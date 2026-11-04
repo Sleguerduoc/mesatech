@@ -7,6 +7,8 @@ const FORM_VACIO = { titulo: '', descripcion: '', categoriaId: '', prioridadId: 
 
 function MisSolicitudes() {
   const [catalogo, setCatalogo] = useState({ categorias: [], prioridades: [] });
+  // EP2: las categorías salen de la copia local de ms-solicitudes (recibidas por RabbitMQ)
+  const [categoriasLocales, setCategoriasLocales] = useState([]);
   const [form, setForm] = useState(FORM_VACIO);
   const [mensajeForm, setMensajeForm] = useState(null);
 
@@ -16,12 +18,22 @@ function MisSolicitudes() {
 
   const ruta = `/${version}/solicitudes/mias`;
 
-  // Categorías y prioridades activas para los selects
+  const cargarCategoriasLocales = useCallback(async () => {
+    try {
+      const respuesta = await api.get('/v1/solicitudes/categorias');
+      setCategoriasLocales(respuesta.data);
+    } catch (error) {
+      setMensajeForm({ tipo: 'error', texto: `No se pudieron cargar las categorías disponibles. ${textoError(error)}` });
+    }
+  }, []);
+
+  // Prioridades (desde Catálogo) y categorías disponibles (copia local de Solicitudes) para los selects
   useEffect(() => {
     api.get('/v1/catalogo')
       .then((respuesta) => setCatalogo(respuesta.data))
       .catch((error) => setMensajeForm({ tipo: 'error', texto: `No se pudo cargar el catálogo. ${textoError(error)}` }));
-  }, []);
+    cargarCategoriasLocales();
+  }, [cargarCategoriasLocales]);
 
   const cargarSolicitudes = useCallback(async () => {
     setSolicitudes([]);
@@ -61,7 +73,7 @@ function MisSolicitudes() {
     }
   };
 
-  const nombreCategoria = (id) => (catalogo.categorias.find((c) => c.id === id) || {}).nombre;
+  const nombreCategoria = (id) => (categoriasLocales.find((c) => c.categoriaId === id) || {}).nombre;
 
   return (
     <>
@@ -81,8 +93,8 @@ function MisSolicitudes() {
               Categoría
               <select name="categoriaId" value={form.categoriaId} onChange={cambiar} required>
                 <option value="">Seleccione...</option>
-                {catalogo.categorias.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                {categoriasLocales.map((c) => (
+                  <option key={c.categoriaId} value={c.categoriaId}>{c.nombre}</option>
                 ))}
               </select>
             </label>
@@ -96,6 +108,12 @@ function MisSolicitudes() {
               </select>
             </label>
           </div>
+          <p className="nota">
+            Categorías disponibles en Solicitudes: {categoriasLocales.length} (copia local recibida desde Catálogo por
+            RabbitMQ). Una categoría recién creada aparece cuando el consumidor procesa su evento.
+            {' '}
+            <button type="button" className="btn btn-secundario" onClick={cargarCategoriasLocales}>Actualizar categorías</button>
+          </p>
           <div>
             <button type="submit" className="btn">Crear solicitud</button>
           </div>

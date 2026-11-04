@@ -1,0 +1,9 @@
+# Archivos con valores reales: nunca al repositorio
+.env
+*.env
+!*.env.example
+.env.production
+.env.local
+**/target/
+mesatech-web/node_modules/
+mesatech-web/build/

@@ -1,7 +1,10 @@
 package cl.duoc.mesatech.bff.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cl.duoc.mesatech.bff.client.CatalogoClient;
 import cl.duoc.mesatech.bff.dto.CatalogoDto;
+import cl.duoc.mesatech.bff.dto.CategoriaCreadaDto;
 import cl.duoc.mesatech.bff.dto.CategoriaDto;
 import cl.duoc.mesatech.bff.dto.CategoriaRequest;
 import cl.duoc.mesatech.bff.dto.PrioridadDto;
@@ -33,6 +36,8 @@ public class CatalogoController {
 
 	private static final String ADMIN = "hasAuthority('SCOPE_Catalogo.Access') and hasAuthority('ROLE_ADMINISTRADOR')";
 
+	private static final Logger log = LoggerFactory.getLogger(CatalogoController.class);
+
 	private final CatalogoClient catalogoClient;
 
 	public CatalogoController(CatalogoClient catalogoClient) {
@@ -52,8 +57,12 @@ public class CatalogoController {
 
 	@PostMapping("/categorias")
 	@PreAuthorize(ADMIN)
-	public ResponseEntity<CategoriaDto> crearCategoria(@Valid @RequestBody CategoriaRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(catalogoClient.crearCategoria(request));
+	public ResponseEntity<CategoriaCreadaDto> crearCategoria(@Valid @RequestBody CategoriaRequest request,
+			@AuthenticationPrincipal Jwt jwt) {
+		CategoriaCreadaDto creada = catalogoClient.crearCategoria(request);
+		log.info("Categoría creada id={} eventId={} por {}", creada.id(), creada.eventId(),
+				UsuarioActual.desde(jwt).usuario());
+		return ResponseEntity.status(HttpStatus.CREATED).body(creada);
 	}
 
 	@PutMapping("/categorias/{id}")

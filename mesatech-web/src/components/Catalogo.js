@@ -13,6 +13,18 @@ function Catalogo() {
   const [categoria, setCategoria] = useState(CATEGORIA_VACIA);
   const [prioridad, setPrioridad] = useState(PRIORIDAD_VACIA);
   const [mensaje, setMensaje] = useState(null);
+  // EP2: categorías que ya llegaron a la copia local de ms-solicitudes (consumidor de RabbitMQ)
+  const [enSolicitudes, setEnSolicitudes] = useState(null);
+  const [ultimoEvento, setUltimoEvento] = useState(null);
+
+  const cargarCopiaLocal = useCallback(async () => {
+    try {
+      const respuesta = await api.get('/v1/solicitudes/categorias');
+      setEnSolicitudes(new Map(respuesta.data.map((c) => [c.categoriaId, c])));
+    } catch (error) {
+      setEnSolicitudes(null);
+    }
+  }, []);
 
   const cargar = useCallback(async () => {
     try {
@@ -21,11 +33,30 @@ function Catalogo() {
     } catch (error) {
       setMensaje({ tipo: 'error', texto: textoError(error) });
     }
-  }, []);
+    await cargarCopiaLocal();
+  }, [cargarCopiaLocal]);
 
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  // Mientras haya categorías activas sin copia en Solicitudes, se consulta cada 3 s (procesamiento asíncrono)
+  const hayPendientes = enSolicitudes !== null
+    && catalogo.categorias.some((c) => c.activa && !enSolicitudes.has(c.id));
+  useEffect(() => {
+    if (!hayPendientes) {
+      return undefined;
+    }
+    const temporizador = setInterval(cargarCopiaLocal, 3000);
+    return () => clearInterval(temporizador);
+  }, [hayPendientes, cargarCopiaLocal]);
+
+  const estadoCopia = (c) => {
+    if (enSolicitudes === null) {
+      return 'Sin datos';
+    }
+    return enSolicitudes.has(c.id) ? 'Disponible' : 'Pendiente';
+  };
 
   const ejecutar = async (operacion, descripcion) => {
     try {
@@ -44,12 +75,31 @@ function Catalogo() {
   const guardarCategoria = async (evento) => {
     evento.preventDefault();
     const cuerpo = { nombre: categoria.nombre, descripcion: categoria.descripcion || null };
-    const ok = categoria.id
-      ? await ejecutar(() => api.put(`/v1/catalogo/categorias/${categoria.id}`, cuerpo), `categoría #${categoria.id} actualizada`)
-      : await ejecutar(() => api.post('/v1/catalogo/categorias', cuerpo), `categoría "${cuerpo.nombre}" creada`);
-    if (ok) {
-      setCategoria(CATEGORIA_VACIA);
+    if (categoria.id) {
+      const ok = await ejecutar(() => api.put(`/v1/catalogo/categorias/${categoria.id}`, cuerpo), `categoría #${categoria.id} actualizada`);
+      if (ok) {
+        setCategoria(CATEGORIA_VACIA);
+      }
+      return;
     }
+    try {
+      const respuesta = await api.post('/v1/catalogo/categorias', cuerpo);
+      const c = respuesta.data;
+      setUltimoEvento({ categoriaId: c.id, eventId: c.eventId });
+      setMensaje({
+        tipo: 'ok',
+        texto: `OK ${respuesta.status}: categoría #${c.id} "${c.nombre}" guardada en Catálogo y evento publicado `
+          + `(eventId ${c.eventId}). Quedará disponible en Solicitudes cuando el consumidor lo procese.`,
+      });
+      setCategoria(CATEGORIA_VACIA);
+    } catch (error) {
+      const cuerpoError = error.cuerpo || {};
+      if (cuerpoError.registroGuardado) {
+        setUltimoEvento({ categoriaId: cuerpoError.categoriaId, eventId: cuerpoError.eventId, fallido: true });
+      }
+      setMensaje({ tipo: 'error', texto: `Crear categoría: ${textoError(error)}` });
+    }
+    await cargar();
   };
 
   const desactivarCategoria = (c) => {
@@ -107,10 +157,22 @@ function Catalogo() {
             <button type="button" className="btn btn-secundario" onClick={() => setCategoria(CATEGORIA_VACIA)}>Cancelar</button>
           )}
         </form>
+        {ultimoEvento && (
+          <p className="nota">
+            Última creación: categoriaId {ultimoEvento.categoriaId}, eventId {ultimoEvento.eventId || '-'}
+            {ultimoEvento.fallido ? ' (evento NO confirmado por RabbitMQ)' : ''}
+          </p>
+        )}
+        <p className="nota">
+          La columna &quot;En Solicitudes&quot; consulta GET /v1/solicitudes/categorias (copia local de ms-solicitudes).
+          {hayPendientes ? ' Hay categorías pendientes: se vuelve a consultar cada 3 segundos.' : ''}
+          {' '}
+          <button type="button" className="btn btn-secundario" onClick={cargarCopiaLocal}>Comprobar ahora</button>
+        </p>
         <div className="tabla-contenedor">
           <table className="tabla">
             <thead>
-              <tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Activa</th><th /></tr>
+              <tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Activa</th><th>En Solicitudes</th><th /></tr>
             </thead>
             <tbody>
               {catalogo.categorias.map((c) => (
@@ -119,6 +181,7 @@ function Catalogo() {
                   <td>{c.nombre}</td>
                   <td>{c.descripcion || '-'}</td>
                   <td>{c.activa ? 'Sí' : 'No'}</td>
+                  <td className={estadoCopia(c) === 'Pendiente' ? 'texto-error' : ''}>{estadoCopia(c)}</td>
                   <td className="acciones">
                     <button type="button" className="btn btn-secundario" onClick={() => setCategoria(c)}>Editar</button>
                     {c.activa && (

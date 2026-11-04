@@ -1,6 +1,7 @@
 package cl.duoc.mesatech.bff.controller;
 
 import cl.duoc.mesatech.bff.dto.CambiarEstadoRequest;
+import cl.duoc.mesatech.bff.dto.CategoriaLocalDto;
 import cl.duoc.mesatech.bff.dto.CrearSolicitudRequest;
 import cl.duoc.mesatech.bff.dto.SolicitudDto;
 import cl.duoc.mesatech.bff.security.UsuarioActual;
@@ -36,6 +37,16 @@ public class SolicitudesController {
 	public ResponseEntity<SolicitudDto> crear(@Valid @RequestBody CrearSolicitudRequest request,
 			@AuthenticationPrincipal Jwt jwt) {
 		return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(request, UsuarioActual.desde(jwt)));
+	}
+
+	/**
+	 * Categorías disponibles para registrar solicitudes: copia local de ms-solicitudes (EP2). Una categoría
+	 * recién creada en Catálogo aparece aquí cuando el consumidor procesó su evento.
+	 */
+	@GetMapping("/categorias")
+	@PreAuthorize("hasAuthority('SCOPE_Solicitudes.Access')")
+	public List<CategoriaLocalDto> categoriasDisponibles() {
+		return service.categoriasDisponibles();
 	}
 
 	@GetMapping("/mias")

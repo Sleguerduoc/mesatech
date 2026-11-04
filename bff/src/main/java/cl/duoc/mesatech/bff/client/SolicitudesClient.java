@@ -1,6 +1,7 @@
 package cl.duoc.mesatech.bff.client;
 
 import cl.duoc.mesatech.bff.dto.CambiarEstadoInterno;
+import cl.duoc.mesatech.bff.dto.CategoriaLocalDto;
 import cl.duoc.mesatech.bff.dto.CrearSolicitudInterna;
 import cl.duoc.mesatech.bff.dto.SolicitudDto;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,6 +20,10 @@ public class SolicitudesClient {
 
 	private static final ParameterizedTypeReference<List<SolicitudDto>> LISTA = new ParameterizedTypeReference<>() {
 	};
+
+	private static final ParameterizedTypeReference<List<CategoriaLocalDto>> LISTA_CATEGORIAS =
+			new ParameterizedTypeReference<>() {
+			};
 
 	private final RestClient client;
 
@@ -63,5 +68,13 @@ public class SolicitudesClient {
 				.body(cambio)
 				.retrieve()
 				.body(SolicitudDto.class);
+	}
+
+	/** Copia local de categorías que ms-solicitudes recibió por RabbitMQ. */
+	public List<CategoriaLocalDto> listarCategoriasLocales() {
+		return client.get()
+				.uri("/api/categorias")
+				.retrieve()
+				.body(LISTA_CATEGORIAS);
 	}
 }

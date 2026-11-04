@@ -1,6 +1,7 @@
 package cl.duoc.mesatech.bff.client;
 
 import cl.duoc.mesatech.bff.dto.CatalogoDto;
+import cl.duoc.mesatech.bff.dto.CategoriaCreadaDto;
 import cl.duoc.mesatech.bff.dto.CategoriaDto;
 import cl.duoc.mesatech.bff.dto.CategoriaRequest;
 import cl.duoc.mesatech.bff.dto.PrioridadDto;
@@ -38,13 +39,13 @@ public class CatalogoClient {
 				.body(CategoriaDto.class);
 	}
 
-	public CategoriaDto crearCategoria(CategoriaRequest request) {
+	public CategoriaCreadaDto crearCategoria(CategoriaRequest request) {
 		return client.post()
 				.uri("/api/catalogo/categorias")
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(request)
 				.retrieve()
-				.body(CategoriaDto.class);
+				.body(CategoriaCreadaDto.class);
 	}
 
 	public CategoriaDto actualizarCategoria(Long id, CategoriaRequest request) {

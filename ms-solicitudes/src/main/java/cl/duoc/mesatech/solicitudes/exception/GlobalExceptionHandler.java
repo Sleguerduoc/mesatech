@@ -25,6 +25,11 @@ public class GlobalExceptionHandler {
 		return construirRespuesta(HttpStatus.NOT_FOUND, ex.getMessage());
 	}
 
+	@ExceptionHandler(CategoriaNoDisponibleException.class)
+	public ResponseEntity<Map<String, Object>> manejarCategoriaNoDisponible(CategoriaNoDisponibleException ex) {
+		return construirRespuesta(HttpStatus.BAD_REQUEST, ex.getMessage());
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<Map<String, Object>> manejarValidacion(MethodArgumentNotValidException ex) {
 		String mensaje = ex.getBindingResult().getFieldErrors().stream()

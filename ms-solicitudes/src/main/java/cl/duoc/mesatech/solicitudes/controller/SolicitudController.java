@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Endpoints internos: solo los consume el BFF (el servicio escucha en 127.0.0.1).
+ * Endpoints internos: solo los consume el BFF (el security group de la EC2 B solo admite su origen).
  */
 @RestController
 @RequestMapping("/api/solicitudes")

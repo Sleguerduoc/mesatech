@@ -1,10 +1,13 @@
 package cl.duoc.mesatech.catalogo.controller;
 
 import cl.duoc.mesatech.catalogo.dto.CatalogoResponse;
+import cl.duoc.mesatech.catalogo.dto.CategoriaCreadaResponse;
 import cl.duoc.mesatech.catalogo.dto.CategoriaRequest;
 import cl.duoc.mesatech.catalogo.dto.PrioridadRequest;
 import cl.duoc.mesatech.catalogo.model.Categoria;
 import cl.duoc.mesatech.catalogo.model.Prioridad;
+import cl.duoc.mesatech.catalogo.messaging.CategoriaPublisher;
+import cl.duoc.mesatech.catalogo.messaging.EventoCategoria;
 import cl.duoc.mesatech.catalogo.service.CatalogoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -20,16 +23,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Endpoints internos: solo los consume el BFF (el servicio escucha en 127.0.0.1).
+ * Endpoints internos: solo los consume el BFF, que corre en la misma EC2 (el servicio escucha en 127.0.0.1).
  */
 @RestController
 @RequestMapping("/api/catalogo")
 public class CatalogoController {
 
 	private final CatalogoService service;
+	private final CategoriaPublisher publisher;
 
-	public CatalogoController(CatalogoService service) {
+	public CatalogoController(CatalogoService service, CategoriaPublisher publisher) {
 		this.service = service;
+		this.publisher = publisher;
 	}
 
 	@GetMapping
@@ -45,8 +50,12 @@ public class CatalogoController {
 	}
 
 	@PostMapping("/categorias")
-	public ResponseEntity<Categoria> crearCategoria(@Valid @RequestBody CategoriaRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(service.crearCategoria(request));
+	public ResponseEntity<CategoriaCreadaResponse> crearCategoria(@Valid @RequestBody CategoriaRequest request) {
+		// 1) Se guarda y se confirma la transacción en RDS Catálogo.
+		Categoria creada = service.crearCategoria(request);
+		// 2) Operación separada: publicar el evento. Si falla, la categoría ya quedó guardada (ver handler 503).
+		EventoCategoria evento = publisher.publicarCreacion(creada);
+		return ResponseEntity.status(HttpStatus.CREATED).body(CategoriaCreadaResponse.de(creada, evento.eventId()));
 	}
 
 	@PutMapping("/categorias/{id}")

@@ -1,0 +1,17 @@
+[Unit]
+Description=MesaTech Cloud - bff
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/opt/mesatech
+# Variables y credenciales fuera del repositorio
+EnvironmentFile=/etc/mesatech/bff.env
+ExecStart=/usr/bin/java -Xms128m -Xmx384m -jar /opt/mesatech/bff.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

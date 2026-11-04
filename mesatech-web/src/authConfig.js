@@ -9,8 +9,10 @@ export const msalConfig = {
   auth: {
     clientId: CLIENT_ID,
     authority: `https://login.microsoftonline.com/${TENANT_ID}`,
-    redirectUri: 'http://localhost:3000/',
-    postLogoutRedirectUri: 'http://localhost:3000/',
+    // Origen donde se sirve la SPA: CloudFront en AWS (o localhost:3000 en desarrollo).
+    // Ambas URL deben estar registradas como Redirect URI de tipo SPA en Entra ID.
+    redirectUri: `${window.location.origin}/`,
+    postLogoutRedirectUri: `${window.location.origin}/`,
   },
   cache: {
     // sessionStorage: la sesión se pierde al cerrar la pestaña (más seguro que localStorage)

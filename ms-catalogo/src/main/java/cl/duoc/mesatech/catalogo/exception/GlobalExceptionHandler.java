@@ -1,5 +1,6 @@
 package cl.duoc.mesatech.catalogo.exception;
 
+import cl.duoc.mesatech.catalogo.messaging.PublicacionFallidaException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -23,6 +24,24 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(NombreDuplicadoException.class)
 	public ResponseEntity<Map<String, Object>> manejarNombreDuplicado(NombreDuplicadoException ex) {
 		return construirRespuesta(HttpStatus.CONFLICT, ex.getMessage());
+	}
+
+	/**
+	 * La categoría quedó guardada en RDS, pero el broker no confirmó el evento. No hay rollback
+	 * automático: se informa el resultado real para que el administrador lo revise.
+	 */
+	@ExceptionHandler(PublicacionFallidaException.class)
+	public ResponseEntity<Map<String, Object>> manejarPublicacionFallida(PublicacionFallidaException ex) {
+		ResponseEntity<Map<String, Object>> respuesta = construirRespuesta(HttpStatus.SERVICE_UNAVAILABLE,
+				"La categoría " + ex.getCategoriaId() + " se guardó en el catálogo, pero no se pudo confirmar la "
+						+ "publicación del evento en RabbitMQ (" + ex.getMessage() + "). Solicitudes no la recibirá "
+						+ "hasta que se vuelva a publicar. No se revirtió el registro.");
+		Map<String, Object> cuerpo = respuesta.getBody();
+		cuerpo.put("categoriaId", ex.getCategoriaId());
+		cuerpo.put("eventId", ex.getEventId());
+		cuerpo.put("registroGuardado", true);
+		cuerpo.put("eventoConfirmado", false);
+		return respuesta;
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

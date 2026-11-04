@@ -2,6 +2,7 @@ package cl.duoc.mesatech.solicitudes.service;
 
 import cl.duoc.mesatech.solicitudes.dto.CambiarEstadoRequest;
 import cl.duoc.mesatech.solicitudes.dto.CrearSolicitudRequest;
+import cl.duoc.mesatech.solicitudes.exception.CategoriaNoDisponibleException;
 import cl.duoc.mesatech.solicitudes.exception.RecursoNoEncontradoException;
 import cl.duoc.mesatech.solicitudes.exception.TransicionInvalidaException;
 import cl.duoc.mesatech.solicitudes.model.EstadoSolicitud;
@@ -20,13 +21,20 @@ public class SolicitudService {
 	private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 	private final SolicitudRepository repository;
+	private final CategoriaLocalService categoriaLocalService;
 
-	public SolicitudService(SolicitudRepository repository) {
+	public SolicitudService(SolicitudRepository repository, CategoriaLocalService categoriaLocalService) {
 		this.repository = repository;
+		this.categoriaLocalService = categoriaLocalService;
 	}
 
 	@Transactional
 	public Solicitud crear(CrearSolicitudRequest request) {
+		// La categoría se valida contra la copia local recibida por RabbitMQ (no se consulta el RDS de Catálogo)
+		if (!categoriaLocalService.existe(request.categoriaId())) {
+			throw new CategoriaNoDisponibleException("La categoría " + request.categoriaId()
+					+ " todavía no está disponible en Solicitudes (el evento aún no se procesa o no existe)");
+		}
 		Solicitud solicitud = new Solicitud();
 		solicitud.setTitulo(request.titulo());
 		solicitud.setDescripcion(request.descripcion());

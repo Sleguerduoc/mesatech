@@ -5,6 +5,7 @@ import cl.duoc.mesatech.bff.client.SolicitudesClient;
 import cl.duoc.mesatech.bff.dto.CambiarEstadoInterno;
 import cl.duoc.mesatech.bff.dto.CambiarEstadoRequest;
 import cl.duoc.mesatech.bff.dto.CatalogoDto;
+import cl.duoc.mesatech.bff.dto.CategoriaLocalDto;
 import cl.duoc.mesatech.bff.dto.CategoriaDto;
 import cl.duoc.mesatech.bff.dto.CrearSolicitudInterna;
 import cl.duoc.mesatech.bff.dto.CrearSolicitudRequest;
@@ -49,7 +50,8 @@ public class SolicitudesService {
 	}
 
 	public SolicitudDto crear(CrearSolicitudRequest request, UsuarioActual usuario) {
-		validarCatalogo(request.categoriaId(), request.prioridadId());
+		// La categoría la valida ms-solicitudes contra su copia local (EP2); aquí se valida la prioridad
+		validarPrioridad(request.prioridadId());
 
 		// El solicitante SIEMPRE sale del token validado; nunca del body enviado por el cliente
 		CrearSolicitudInterna interna = new CrearSolicitudInterna(request.titulo(), request.descripcion(),
@@ -57,6 +59,10 @@ public class SolicitudesService {
 		SolicitudDto creada = solicitudesClient.crear(interna);
 		log.info("Solicitud creada id={} por oid={}", creada.id(), usuario.oid());
 		return creada;
+	}
+
+	public List<CategoriaLocalDto> categoriasDisponibles() {
+		return solicitudesClient.listarCategoriasLocales();
 	}
 
 	public List<SolicitudDto> listarMias(UsuarioActual usuario) {
@@ -130,18 +136,8 @@ public class SolicitudesService {
 				slaHoras, horasAbierta, vencida);
 	}
 
-	/** Verifica en ms-catalogo que la categoría y la prioridad existan y estén activas; si no, 400. */
-	private void validarCatalogo(Long categoriaId, Long prioridadId) {
-		CategoriaDto categoria;
-		try {
-			categoria = catalogoClient.obtenerCategoria(categoriaId);
-		} catch (HttpClientErrorException.NotFound e) {
-			categoria = null;
-		}
-		if (categoria == null || !categoria.activa()) {
-			throw new PeticionInvalidaException("La categoría " + categoriaId + " no existe o no está activa");
-		}
-
+	/** Verifica en ms-catalogo que la prioridad exista y esté activa; si no, 400. */
+	private void validarPrioridad(Long prioridadId) {
 		PrioridadDto prioridad;
 		try {
 			prioridad = catalogoClient.obtenerPrioridad(prioridadId);

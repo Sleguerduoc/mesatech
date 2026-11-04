@@ -36,6 +36,13 @@ public class GlobalExceptionHandler {
 			}
 			return ResponseEntity.status(ex.getStatusCode()).contentType(MediaType.APPLICATION_JSON).body(cuerpo);
 		}
+		// 503 de ms-catalogo: la categoría se guardó pero el evento no se confirmó. Se reenvía el cuerpo
+		// (categoriaId, eventId, registroGuardado) para que el frontend muestre el resultado real.
+		String cuerpo5xx = ex.getResponseBodyAsString();
+		if (ex.getStatusCode().value() == 503 && !cuerpo5xx.isBlank()) {
+			log.error("Servicio interno respondió 503: {}", cuerpo5xx);
+			return ResponseEntity.status(503).contentType(MediaType.APPLICATION_JSON).body(cuerpo5xx);
+		}
 		log.error("Error {} en servicio interno: {}", ex.getStatusCode().value(), ex.getMessage());
 		return construirRespuesta(HttpStatus.BAD_GATEWAY, "Error en servicio interno");
 	}

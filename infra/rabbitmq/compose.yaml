@@ -1,0 +1,34 @@
+# RabbitMQ de MesaTech Cloud (EC2 C, Ubuntu 24.04 LTS).
+# Las credenciales se leen del archivo .env de esta carpeta, que NO se sube al repositorio
+# (ver .env.example). Uso: docker compose config --quiet && docker compose pull && docker compose up -d
+name: mesatech-broker
+
+services:
+  rabbitmq:
+    # Imagen oficial con versión explícita y la interfaz de administración (plugin management)
+    image: rabbitmq:4.3.7-management
+    container_name: mesatech-rabbitmq
+    # Hostname estable: el nodo se llama rabbit@mesatech-rabbitmq y sus datos se guardan con ese nombre.
+    # Si cambiara al recrear el contenedor, RabbitMQ no reconocería los datos del volumen.
+    hostname: mesatech-rabbitmq
+    restart: unless-stopped
+    environment:
+      # Usuario administrador inicial (solo para administración, no lo usan las aplicaciones)
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_ADMIN_USER:?definir RABBITMQ_ADMIN_USER en .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_ADMIN_PASSWORD:?definir RABBITMQ_ADMIN_PASSWORD en .env}
+    ports:
+      - "5672:5672"     # AMQP: EC2 A (publicador) y EC2 B (consumidor), restringido por security group
+      - "15672:15672"   # Interfaz de administración: solo IP administrativa /32
+    volumes:
+      # Definiciones (vhost, usuarios, exchange, cola, binding) y mensajes persistentes
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  rabbitmq_data:
+    name: mesatech_rabbitmq_data
