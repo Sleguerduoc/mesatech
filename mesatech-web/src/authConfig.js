@@ -9,10 +9,10 @@ export const msalConfig = {
   auth: {
     clientId: CLIENT_ID,
     authority: `https://login.microsoftonline.com/${TENANT_ID}`,
-    // Origen donde se sirve la SPA: CloudFront en AWS (o localhost:3000 en desarrollo).
-    // Ambas URL deben estar registradas como Redirect URI de tipo SPA en Entra ID.
-    redirectUri: `${window.location.origin}/`,
-    postLogoutRedirectUri: `${window.location.origin}/`,
+    // URL donde se sirve la SPA: bucket S3 por HTTPS (https://<bucket>.s3.us-east-1.amazonaws.com/index.html)
+    // o http://localhost:3000/ en desarrollo. Ambas deben estar registradas como Redirect URI SPA en Entra ID.
+    redirectUri: `${window.location.origin}${window.location.pathname}`,
+    postLogoutRedirectUri: `${window.location.origin}${window.location.pathname}`,
   },
   cache: {
     // sessionStorage: la sesión se pierde al cerrar la pestaña (más seguro que localStorage)
