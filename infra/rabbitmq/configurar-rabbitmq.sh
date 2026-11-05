@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Crea los recursos de mensajería de MesaTech en el broker levantado con compose.yaml.
-# Se puede ejecutar más de una vez (es idempotente). Ejecutar en la EC2 C, en esta misma carpeta.
+# Crea los recursos de mensajeria de MesaTech en el broker levantado con compose.yaml.
+# Se puede ejecutar mas de una vez (es idempotente). Ejecutar en la EC2 C, en esta misma carpeta.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -19,23 +19,23 @@ echo "== Esperando al broker"
 until ctl await_startup >/dev/null 2>&1; do sleep 3; done
 
 echo "== Virtual host ${VHOST}"
-ctl add_vhost "${VHOST}" 2>/dev/null || echo "   (ya existía)"
+ctl add_vhost "${VHOST}" 2>/dev/null || echo "   (ya existia)"
 
 crear_usuario() {
   local usuario=$1 clave=$2
-  # La contraseña se entrega por stdin para que no quede en el historial ni en la lista de procesos
+  # La contrasena se entrega por stdin para que no quede en el historial ni en la lista de procesos
   if ctl list_users --formatter json | grep -q "\"${usuario}\""; then
     printf '%s' "${clave}" | ctl change_password "${usuario}" >/dev/null
-    echo "   ${usuario}: contraseña actualizada"
+    echo "   ${usuario}: contrasena actualizada"
   else
     printf '%s' "${clave}" | ctl add_user "${usuario}" >/dev/null
     echo "   ${usuario}: creado"
   fi
-  # Sin tags: no puede entrar a la interfaz de administración
+  # Sin tags: no puede entrar a la interfaz de administracion
   ctl set_user_tags "${usuario}" >/dev/null
 }
 
-echo "== Usuarios de aplicación (sin privilegios administrativos)"
+echo "== Usuarios de aplicacion (sin privilegios administrativos)"
 crear_usuario "${RABBITMQ_PUBLICADOR_USER}" "${RABBITMQ_PUBLICADOR_PASSWORD}"
 crear_usuario "${RABBITMQ_CONSUMIDOR_USER}" "${RABBITMQ_CONSUMIDOR_PASSWORD}"
 
@@ -44,14 +44,14 @@ echo "== Permisos sobre ${VHOST} (configure / write / read)"
 ctl set_permissions -p "${VHOST}" "${RABBITMQ_PUBLICADOR_USER}" '^$' '^catalogo\.exchange$' '^$'
 # Consumidor: solo leer (consumir) la cola. No puede publicar ni configurar.
 ctl set_permissions -p "${VHOST}" "${RABBITMQ_CONSUMIDOR_USER}" '^$' '^$' '^solicitudes\.catalogo\.queue$'
-# El administrador también necesita permisos en el vhost para declarar los recursos
+# El administrador tambien necesita permisos en el vhost para declarar los recursos
 ctl set_permissions -p "${VHOST}" "${RABBITMQ_ADMIN_USER}" '.*' '.*' '.*'
 
 echo "== Exchange ${EXCHANGE} (direct, durable)"
 api -X PUT "${API}/exchanges/${VHOST}/${EXCHANGE}" \
   -d '{"type":"direct","durable":true,"auto_delete":false,"internal":false,"arguments":{}}'
 
-echo "== Cola ${QUEUE} (durable, sin autoeliminación)"
+echo "== Cola ${QUEUE} (durable, sin autoeliminacion)"
 api -X PUT "${API}/queues/${VHOST}/${QUEUE}" \
   -d '{"durable":true,"auto_delete":false,"arguments":{"x-queue-type":"classic"}}'
 

@@ -5,20 +5,20 @@ name: mesatech-broker
 
 services:
   rabbitmq:
-    # Imagen oficial con versión explícita y la interfaz de administración (plugin management)
+    # Imagen oficial con version explicita y la interfaz de administracion (plugin management)
     image: rabbitmq:4.3.7-management
     container_name: mesatech-rabbitmq
     # Hostname estable: el nodo se llama rabbit@mesatech-rabbitmq y sus datos se guardan con ese nombre.
-    # Si cambiara al recrear el contenedor, RabbitMQ no reconocería los datos del volumen.
+    # Si cambiara al recrear el contenedor, RabbitMQ no reconoceria los datos del volumen.
     hostname: mesatech-rabbitmq
     restart: unless-stopped
     environment:
-      # Usuario administrador inicial (solo para administración, no lo usan las aplicaciones)
+      # Usuario administrador inicial (solo para administracion, no lo usan las aplicaciones)
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_ADMIN_USER:?definir RABBITMQ_ADMIN_USER en .env}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_ADMIN_PASSWORD:?definir RABBITMQ_ADMIN_PASSWORD en .env}
     ports:
       - "5672:5672"     # AMQP: EC2 A (publicador) y EC2 B (consumidor), restringido por security group
-      - "15672:15672"   # Interfaz de administración: solo IP administrativa /32
+      - "15672:15672"   # Interfaz de administracion: solo IP administrativa /32
     volumes:
       # Definiciones (vhost, usuarios, exchange, cola, binding) y mensajes persistentes
       - rabbitmq_data:/var/lib/rabbitmq
