@@ -37,4 +37,8 @@ ufw viene inactivo por defecto en Ubuntu 24.04 (verificado en la EC2 C, evidenci
 
 ## Administración por SSH
 
-El SSH se permite solo desde la IP administrativa /32 con la llave del laboratorio (vockey). Durante la instalación se usó también la consola EC2 Instance Connect; la regla de ese servicio (prefix list pl-0e4bcff02b13bef1e) se eliminó al terminar las pruebas para dejar la matriz igual a la pedida (evidencias 157 a 159). Si cambia la IP pública del administrador, hay que actualizar las reglas de 22 y 15672.
+El SSH se permite solo desde la IP administrativa /32 con la llave del laboratorio (vockey). Durante la instalación se usó también la consola EC2 Instance Connect; la regla de ese servicio (prefix list pl-0e4bcff02b13bef1e) se eliminó al terminar las pruebas para dejar la matriz igual a la pedida (evidencias 157 a 159).
+
+Para administrar desde el navegador se usa AWS Systems Manager Session Manager (EC2, Connect, SSM Session Manager). No usa SSH ni requiere ninguna regla de entrada: el agente SSM de cada instancia abre la conexión hacia AWS y la autorización se hace con IAM, usando el rol LabRole que ya tienen las tres EC2. Las tres aparecen Online en Fleet Manager (evidencias 160 y 161). La sesión entra como ssm-user; para trabajar como el usuario de la instalación se usa `sudo -iu ubuntu`.
+
+Si cambia la IP pública del administrador, hay que actualizar las reglas de 22 y 15672. Las Elastic IP no evitan esto, porque fijan la IP de la instancia (destino) y no la del administrador (origen).
