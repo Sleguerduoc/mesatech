@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Compila React y lo sube al bucket S3 que sirve CloudFront.
+# Compila React y lo sube al bucket S3 que sirve la aplicación por HTTPS.
 # Uso: ./infra/deploy/publicar-frontend.sh <bucket> [<id-distribucion-cloudfront>]
+# El segundo argumento es opcional; en el Learner Lab no hay CloudFront y no se usa.
 # Requiere mesatech-web/.env.production (copiar desde .env.example).
 set -euo pipefail
 BUCKET=$1; DIST=${2:-}
