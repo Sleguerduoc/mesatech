@@ -45,7 +45,7 @@ Hay dos series de pruebas. La serie A se ejecutó con comandos en las EC2 y deja
 ## P7 Fallo de publicación
 
 - Serie A: se detuvo RabbitMQ y se creó Accesos (id 5). Evidencias 097 a 100.
-- Serie B: se detuvo la EC2 C desde la consola y se creó Cables (id 9). Evidencias 148 a 150, 151 y 152.
+- Serie B: se detuvo la EC2 C desde la consola y se creó Cables (id 9). Evidencias 148 a 152, 162 y 163.
 - Resultado esperado y obtenido: respuesta controlada 503 que indica que la categoría se guardó en el catálogo pero el evento no fue confirmado por RabbitMQ. La categoría existe en RDS Catálogo y no en la copia local (columna "En Solicitudes" queda Pendiente). Al restablecer el broker la cola está vacía, porque el mensaje nunca llegó a RabbitMQ.
 - Inconsistencia: guardar en RDS y publicar son operaciones separadas, así que la categoría queda solo en Catálogo hasta que se vuelva a publicar. No se implementa recuperación automática (outbox o reintentos), porque el enunciado no la exige. Si se reenvía la solicitud HTTP, se crea otra categoría distinta; si RabbitMQ entregara dos veces un mensaje (por ejemplo, si el consumidor cae después de guardar y antes del ack), el consumidor guarda con categoria_id como clave primaria, así que la segunda entrega sobrescribe la misma fila en vez de duplicarla. Esto no equivale a una garantía de procesamiento exactamente una vez.
 - Al detener la EC2 C cambia su IP pública (no tiene Elastic IP). La interfaz de administración pasa a la nueva IP; A y B siguen conectándose por la IP privada 172.31.26.114, que no cambia.
